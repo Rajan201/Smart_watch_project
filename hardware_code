@@ -2,11 +2,12 @@
 #define BLYNK_TEMPLATE_NAME "smart watch"
 #define BLYNK_AUTH_TOKEN "DTBnJ1b5yT9t42sdhU7wZf0nN3pFc8Vn"
  
-// Comment this out to disable prints and save space
 #define BLYNK_PRINT Serial
  
 String long_lat;
- 
+
+// Wifi and ThingSpeak configaration
+
 #include <WiFi.h>
 #include <WiFiClient.h>
 #include <BlynkSimpleEsp32.h>
@@ -23,43 +24,42 @@ const char* server = "api.thingspeak.com";
  
 
 BlynkTimer timer;
- 
+
+// libraries and objects
+
 #include <DFRobot_MAX30102.h>
 #include <LiquidCrystal_I2C.h>
- #include <OneWire.h> 
+#include <OneWire.h> 
 #include <DallasTemperature.h>
 #include <TinyGPS++.h>
 
+
 TinyGPSPlus gps;
-
-
 static const uint32_t GPSBaud = 9600;
-
 float latitude;
 float longitude;
 
  int heart;
  int SP11;
-//String long_lat;
-// initialize the library with the numbers of the interface pins
-LiquidCrystal_I2C lcd(0x27, 16, 2);
 
+// initialize the library with the numbers of the interface pins
+
+LiquidCrystal_I2C lcd(0x27, 16, 2);
 int ecgsensor=34; 
-//
-// Data wire is plugged into pin 7 on the Arduino 
+
+// Data wire is plugged into pin 2 on the Arduino 
+
 #define ONE_WIRE_BUS 2 
-//
 // Setup a oneWire instance to communicate with any OneWire devices  
 // (not just Maxim/Dallas temperature ICs) 
 OneWire oneWire(ONE_WIRE_BUS); 
-//
+
+
 // Pass our oneWire reference to Dallas Temperature. 
 DallasTemperature sensors(&oneWire);
-// 
 
  
-//sda D21, scl D122
-DFRobot_MAX30102 particleSensor;
+DFRobot_MAX30102 particleSensor; // for heart rate and measurment
  int ff1;   
 int32_t SPO2; //SPO2
 int8_t SPO2Valid; //Flag to display if SPO2 calculation is valid
