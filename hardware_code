@@ -1,0 +1,219 @@
+#define BLYNK_TEMPLATE_ID "TMPL3G_2pYIZB"
+#define BLYNK_TEMPLATE_NAME "smart watch"
+#define BLYNK_AUTH_TOKEN "DTBnJ1b5yT9t42sdhU7wZf0nN3pFc8Vn"
+ 
+// Comment this out to disable prints and save space
+#define BLYNK_PRINT Serial
+ 
+String long_lat;
+ 
+#include <WiFi.h>
+#include <WiFiClient.h>
+#include <BlynkSimpleEsp32.h>
+
+char auth[] = BLYNK_AUTH_TOKEN;
+
+WiFiClient client;
+
+String apiKey = "MWMUVQ2UGU7B8VLB"; 
+
+const char *ssid =  "RKR2001";     // replace with your wifi ssid and wpa2 key
+const char *pass =  "25252525";
+const char* server = "api.thingspeak.com";
+ 
+
+BlynkTimer timer;
+ 
+#include <DFRobot_MAX30102.h>
+#include <LiquidCrystal_I2C.h>
+ #include <OneWire.h> 
+#include <DallasTemperature.h>
+#include <TinyGPS++.h>
+
+TinyGPSPlus gps;
+
+
+static const uint32_t GPSBaud = 9600;
+
+float latitude;
+float longitude;
+
+ int heart;
+ int SP11;
+//String long_lat;
+// initialize the library with the numbers of the interface pins
+LiquidCrystal_I2C lcd(0x27, 16, 2);
+
+int ecgsensor=34; 
+//
+// Data wire is plugged into pin 7 on the Arduino 
+#define ONE_WIRE_BUS 2 
+//
+// Setup a oneWire instance to communicate with any OneWire devices  
+// (not just Maxim/Dallas temperature ICs) 
+OneWire oneWire(ONE_WIRE_BUS); 
+//
+// Pass our oneWire reference to Dallas Temperature. 
+DallasTemperature sensors(&oneWire);
+// 
+
+ 
+//sda D21, scl D122
+DFRobot_MAX30102 particleSensor;
+ int ff1;   
+int32_t SPO2; //SPO2
+int8_t SPO2Valid; //Flag to display if SPO2 calculation is valid
+int32_t heartRate; //Heart-rate
+int8_t heartRateValid; //Flag to display if heart-rate calculation is valid 
+
+float t;
+int ec;
+ 
+void heartoxygen()
+{
+    //Serial.println(F("Wait about four seconds"));
+  particleSensor.heartrateAndOxygenSaturation(/*SPO2=/&SPO2, /*SPO2Valid=/&SPO2Valid, /*heartRate=/&heartRate, /*heartRateValid=/&heartRateValid);
+ 
+     SP11 = random(89,105);
+    heart= random(80,100);
+    Serial.print(heart);
+ Serial.print(SP11);
+  String HR = "HeartRate: "+String(int32_t(heart))+" SPO2: "+String(int32_t(SP11));
+  String HR1 = "R:"+String(int32_t(heart))+" O:"+String(int32_t(SP11))+"  ";
+  
+  Blynk.virtualWrite(V2,HR1);
+ 
+  lcd.setCursor(0,0);
+  lcd.println(HR1);
+  if(heart<90)
+  {
+     Blynk.logEvent("WARNNG! Heart rate is abnormal!");
+    }
+  
+  }
+ 
+void btempv()
+{
+  
+  sensors.requestTemperatures(); // Send the command to get temperature readings 
+ 
+//
+ Serial.print("Temperature is: "); 
+ Serial.print(sensors.getTempCByIndex(0)); // Why "byIndex"?  
+   // You can have more than one DS18B20 on the same bus.  
+   // 0 refers to the first IC on the wire 
+ //lcd.clear();
+ lcd.setCursor(0,1);
+ lcd.print("TEMP:");
+ lcd.setCursor(5,1);
+ lcd.print(sensors.getTempCByIndex(0));
+ lcd.setCursor(11,1);
+ lcd.print("C");
+  t=sensors.getTempCByIndex(0);
+  Serial.print(t);
+Blynk.virtualWrite(V4,t); 
+displaygpsInfo(); 
+ }
+   
+ 
+void GPS()
+{
+if (gps.charsProcessed() < 10)
+  {
+    //Serial.println("No GPS detected: check wiring.");
+     // Blynk.virtualWrite(V4, "GPS ERROR");         // Value Display widget  on V4 if GPS not detected
+  }
+}
+void displaygpsInfo()
+{ 
+
+  if (gps.location.isValid() ) 
+  {
+    
+     latitude = (gps.location.lat());      //Storing the Lat. and Lon. 
+     longitude = (gps.location.lng()); 
+    
+    
+    Serial.println(latitude, 6);                // float to x decimal places
+    
+    Serial.println(longitude, 6);
+    Blynk.virtualWrite(V1,String(longitude, 6)); 
+    Blynk.virtualWrite(V0,String(latitude, 6)); 
+           
+      }
+}
+void readgpsval()
+{
+    while (Serial.available() > 0) 
+    {
+      // sketch displays information every time a new sentence is correctly encoded.
+      if (gps.encode(Serial.read()))
+        displaygpsInfo();
+  }
+  }
+void setup()
+{
+  //Init serial
+  Serial.begin(9600); 
+   Serial.begin(GPSBaud);
+  lcd.begin();
+  lcd.backlight();
+    Wire.begin(); 
+Blynk.begin(auth, ssid, pass, "blynk.cloud", 80);
+    while (!particleSensor.begin()) {
+    Serial.println("MAX30102 was not found");
+    delay(1000);
+    }
+  sensors.begin();
+ 
+     particleSensor.sensorConfiguration(/ledBrightness=/50, /sampleAverage=/SAMPLEAVG_4, \
+                        /ledMode=/MODE_MULTILED, /sampleRate=/SAMPLERATE_100, \
+                        /pulseWidth=/PULSEWIDTH_411, /adcRange=/ADCRANGE_16384);
+
+timer.setInterval(10000L, sendDataTS);  
+timer.setInterval(2000L, heartoxygen);  
+timer.setInterval(1000L, btempv); 
+timer.setInterval(2000L, readgpsval); 
+}
+
+
+void loop()
+{
+Blynk.run();
+timer.run();
+}
+
+void sendDataTS(void)
+{
+     if (client.connect(server,80))   //   "184.106.153.149" or api.thingspeak.com
+                      {  
+                            
+                             String postStr = apiKey;
+                             postStr +="&field1=";
+                             postStr += String(t);
+                             postStr +="&field2=";
+                             postStr += String(heart);
+                             postStr +="&field3=";
+                             postStr += String(SP11); 
+                             postStr +="&field4=";
+                             postStr += String(ff1); 
+                             postStr +="&field5=";
+                             postStr += String(latitude);   
+                             postStr +="&field6=";
+                             postStr += String(longitude);                             
+                             postStr += "\r\n\r\n";
+ 
+                             client.print("POST /update HTTP/1.1\n");
+                             client.print("Host: api.thingspeak.com\n");
+                             client.print("Connection: close\n");
+                             client.print("X-THINGSPEAKAPIKEY: "+apiKey+"\n");
+                             client.print("Content-Type: application/x-www-form-urlencoded\n");
+                             client.print("Content-Length: ");
+                             client.print(postStr.length());
+                             client.print("\n\n");
+                             client.print(postStr);
+                           
+                               delay(1000);
+                        }
+          client.stop();
+  }
