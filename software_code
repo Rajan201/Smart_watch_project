@@ -6,15 +6,12 @@ df = pd.read_csv('heart_attack_prediction.csv')
 # Display the first few rows of the dataset
 print(df.head())
 
-# Save the DataFrame to a CSV file
-#df.to_csv('heart_attack_prediction.csv', index=False)
 
 # Create a feature and target variable
 X = df.drop(['Heart Attack'], axis=1) # Features
 y = df['Heart Attack'] # Target
 
 from sklearn.model_selection import train_test_split
-
 Xtrain, Xtest, Ytrain, Ytest = train_test_split(X, y, test_size=0.3, random_state=42)
 
 from sklearn.ensemble import RandomForestClassifier
