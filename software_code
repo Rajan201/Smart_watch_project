@@ -1,0 +1,58 @@
+import pandas as pd
+import numpy as np
+
+df = pd.read_csv('heart_attack_prediction.csv')
+
+# Display the first few rows of the dataset
+print(df.head())
+
+# Save the DataFrame to a CSV file
+#df.to_csv('heart_attack_prediction.csv', index=False)
+
+# Create a feature and target variable
+X = df.drop(['Heart Attack'], axis=1) # Features
+y = df['Heart Attack'] # Target
+
+from sklearn.model_selection import train_test_split
+
+Xtrain, Xtest, Ytrain, Ytest = train_test_split(X, y, test_size=0.3, random_state=42)
+
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.metrics import classification_report
+from sklearn import metrics
+RF = RandomForestClassifier(n_estimators=20, random_state=0)
+RF.fit(Xtrain,Ytrain)
+
+predicted_values = RF.predict(Xtest)
+
+x = metrics.accuracy_score(Ytest, predicted_values)
+
+print("RF's Accuracy is: ", x*100)
+
+print(classification_report(Ytest,predicted_values))
+
+# SMS Notification Service Integration (Example using Twilio)
+from twilio.rest import Client
+
+data = np.array([[41.655000,24.182430,96.073064 ]])
+prediction = RF.predict(data)
+
+# Your Twilio Account SID and Auth Token (replace with yours)
+account_sid = "AC3aef8f8700117e0f7cc86fd5d89763ab"
+auth_token = "437f186c64439633ca76a4d20d41a94a"
+client = Client(account_sid, auth_token)
+
+registered_mobile_numbers = ["+917892778550", "+918660318653", "+918711968172", "+919108303524"]
+
+if prediction == 1:
+    print("Sending SMS notification...")
+    # Send SMS using Twilio API (replace with your registered mobile number)
+    for number in registered_mobile_numbers:
+        client.messages.create(
+        to=number,
+        from_="+12563990330",
+        body=f"Heart attack may occur. Seek medical attention immediately."
+    )
+else:
+    print(" The person is Healthy ")
+print(prediction)
